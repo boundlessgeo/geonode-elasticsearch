@@ -9,6 +9,7 @@ try:
     from geonode.documents.models import Document
     from geonode.people.models import Profile
     from geonode.groups.models import GroupProfile
+    from geonode.services.models import Service
     from elasticsearch_app.search import (
         LayerIndex,
         MapIndex,
@@ -39,6 +40,13 @@ if geonode_imported:
     def layer_index_post(sender, instance, **kwargs):
         index_object(instance, LayerIndex)
 
+    @receiver(post_save, sender=Service)
+    def service_post_save(sender, **kwargs):
+        service, created = kwargs["instance"], kwargs["created"]
+        if not created:
+            for instance in service.layer_set.all():
+                index_object(instance, LayerIndex)    
+        
     @receiver(post_delete, sender=Layer)
     def layer_index_delete(sender, instance, **kwargs):
         index_to_remove = LayerIndex.get(instance.id)

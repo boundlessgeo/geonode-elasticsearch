@@ -21,14 +21,6 @@ try:
 except ImportError:
     geonode_imported = False
 
-exchange_imported = True
-try:
-    from exchange.storyscapes.models.base import Story
-    from elasticsearch_app.search import StoryIndex
-    exchange_imported = True
-except ImportError:
-    exchange_imported = False
-
 # To extend this app in your project, add
 # import statements for the models you need from your
 # project here
@@ -93,18 +85,6 @@ if geonode_imported:
         index_to_remove = GroupIndex.get(instance.id)
         if index_to_remove:
             index_to_remove.delete()
-
-if exchange_imported:
-    @receiver(post_save, sender=Story)
-    def story_index_post(sender, instance, **kwargs):
-        index_object(instance, StoryIndex)
-
-    @receiver(post_delete, sender=Story)
-    def story_index_delete(sender, instance, **kwargs):
-        index_to_remove = StoryIndex.get(instance.id)
-        if index_to_remove:
-            index_to_remove.delete()
-
 
 # To extend this app in your project, add a post_save
 # signal for every model you wish to index.

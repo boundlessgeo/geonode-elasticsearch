@@ -27,14 +27,6 @@ try:
 except ImportError:
     geonode_imported = False
 
-exchange_imported = True
-try:
-    from exchange.storyscapes.models.base import Story
-    from elasticsearch_app.search import StoryIndex
-    exchange_imported = True
-except ImportError:
-    exchange_imported = False
-
 
 class Command(BaseCommand):
     help = "Freshens the index for the given app(s)."
@@ -53,9 +45,6 @@ class Command(BaseCommand):
             DocumentIndex.init()
             ProfileIndex.init()
             GroupIndex.init()
-
-        if exchange_imported:
-            StoryIndex.init()
 
         body = {
             'analysis': {
@@ -90,10 +79,6 @@ class Command(BaseCommand):
             remove_extraneous_elements('profile-index', Profile, ProfileIndex)
             remove_extraneous_elements('group-index', GroupProfile, GroupIndex)
 
-        if exchange_imported:
-            remove_extraneous_elements('story-index', Story, StoryIndex)
-
-
         # Any indices added in search.py should be indexed here
         if geonode_imported:
             bulk(client=es,
@@ -111,8 +96,3 @@ class Command(BaseCommand):
             bulk(client=es,
                  actions=(index_object(group, GroupIndex)
                           for group in GroupProfile.objects.all().iterator()))
-
-        if exchange_imported:
-            bulk(client=es,
-                 actions=(index_object(story, StoryIndex)
-                          for story in Story.objects.all().iterator()))

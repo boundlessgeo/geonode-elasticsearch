@@ -24,8 +24,7 @@ class Command(BaseCommand):
             'map-index',
             'document-index',
             'group-index',
-            'profile-index',
-            'story-index'
+            'profile-index'
         ]
         for index in indices:
             try:

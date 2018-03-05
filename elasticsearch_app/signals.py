@@ -31,40 +31,47 @@ if geonode_imported:
     @receiver(post_save, sender=Layer)
     def layer_index_post(sender, instance, **kwargs):
         index_object(instance, LayerIndex)
+        index_object(instance.owner, ProfileIndex)
 
     @receiver(post_save, sender=Service)
     def service_post_save(sender, **kwargs):
         service, created = kwargs["instance"], kwargs["created"]
         if not created:
             for instance in service.layer_set.all():
-                index_object(instance, LayerIndex)    
+                index_object(instance, LayerIndex)
+                index_object(instance.owner, ProfileIndex)  
         
     @receiver(post_delete, sender=Layer)
     def layer_index_delete(sender, instance, **kwargs):
         index_to_remove = LayerIndex.get(instance.id)
         if index_to_remove:
             index_to_remove.delete()
+        index_object(instance.owner, ProfileIndex)
 
 
     @receiver(post_save, sender=Map)
     def map_index_post(sender, instance, **kwargs):
         index_object(instance, MapIndex)
+        index_object(instance.owner, ProfileIndex)
 
     @receiver(post_delete, sender=Map)
     def map_index_delete(sender, instance, **kwargs):
         index_to_remove = MapIndex.get(instance.id)
         if index_to_remove:
             index_to_remove.delete()
+        index_object(instance.owner, ProfileIndex)
 
     @receiver(post_save, sender=Document)
     def document_index_post(sender, instance, **kwargs):
         index_object(instance, DocumentIndex)
+        index_object(instance.owner, ProfileIndex)
 
     @receiver(post_delete, sender=Document)
     def document_index_delete(sender, instance, **kwargs):
         index_to_remove = DocumentIndex.get(instance.id)
         if index_to_remove:
             index_to_remove.delete()
+        index_object(instance.owner, ProfileIndex)
 
     @receiver(post_save, sender=Profile)
     def profile_index_post(sender, instance, **kwargs):
@@ -85,6 +92,7 @@ if geonode_imported:
         index_to_remove = GroupIndex.get(instance.id)
         if index_to_remove:
             index_to_remove.delete()
+        index_object(instance.owner, ProfileIndex)
 
 # To extend this app in your project, add a post_save
 # signal for every model you wish to index.

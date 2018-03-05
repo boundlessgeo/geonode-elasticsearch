@@ -1,3 +1,5 @@
+from elasticsearch_app import search
+
 def index_object(object, index=None):
     '''
     Indexes an object into its appropriate model index.
@@ -7,7 +9,10 @@ def index_object(object, index=None):
     :param index: The search index to put the object in
     :return: A dict of the successfully indexed object
     '''
-    if hasattr(object, 'indexing'):
+    classname = object.__class__.__name__
+    if classname == 'Profile':
+        return search.create_profile_index(object)
+    elif hasattr(object, 'indexing'):
         return object.indexing()
     else:
         if index is not None:

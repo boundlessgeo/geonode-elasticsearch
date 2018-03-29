@@ -12,6 +12,14 @@ def index_object(object, index=None):
     classname = object.__class__.__name__
     if classname == 'Profile':
         return search.create_profile_index(object)
+    elif classname == 'Group':
+        return search.create_group_index(object)
+    elif classname == 'Document':
+        return search.create_document_index(object)
+    elif classname == 'Layer':
+        return search.create_document_index(object)
+    elif classname == 'Map':
+        return search.create_map_index(object)
     elif hasattr(object, 'indexing'):
         return object.indexing()
     else:

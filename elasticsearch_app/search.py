@@ -17,6 +17,16 @@ from geonode.maps.models import Map
 from geonode.documents.models import Document
 from guardian.shortcuts import get_objects_for_user
 from avatar.templatetags.avatar_tags import avatar_url
+from django.contrib.contenttypes.models import ContentType
+from agon_ratings.models import OverallRating
+from dialogos.models import Comment
+from django.db.models import Avg
+from geonode.services.enumerations import INDEXED
+from six.moves.urllib_parse import urlparse
+try:
+    import json
+except ImportError:
+    from django.utils import simplejson as json
 
 connections.create_connection(hosts=[settings.ES_URL])
 
@@ -26,6 +36,132 @@ pattern_analyzer = analyzer(
   pattern="\\W|_",
   lowercase=True
 )
+
+
+# Functions used to prepare columns for index
+def prepare_rating(resource):
+    ct = ContentType.objects.get_for_model(resource)
+    try:
+        rating = OverallRating.objects.filter(
+            object_id=resource.pk,
+            content_type=ct
+        ).aggregate(r=Avg("rating"))["r"]
+        return float(str(rating or "0"))
+    except OverallRating.DoesNotExist:
+        return 0.0
+
+
+def prepare_num_ratings(resource):
+    ct = ContentType.objects.get_for_model(resource)
+    try:
+        return OverallRating.objects.filter(
+            object_id=resource.pk,
+            content_type=ct
+        ).all().count()
+    except OverallRating.DoesNotExist:
+        return 0
+
+
+def prepare_num_comments(resource):
+    ct = ContentType.objects.get_for_model(resource)
+    try:
+        return Comment.objects.filter(
+            object_id=resource.pk,
+            content_type=ct
+        ).all().count()
+    except Comment.DoesNotExist:
+        return 0
+
+
+def prepare_title_sortable(resource):
+    return resource.prepare_title().lower()
+
+
+def prepare_category(resource):
+    if resource.category:
+        return resource.category.identifier
+    else:
+        return None
+
+
+def prepare_category_gn_description(resource):
+    if resource.category:
+        return resource.category.gn_description
+    else:
+        return None
+
+
+def prepare_supplemental_information(resource):
+    # For some reason this isn't a string
+    return str(resource.supplemental_information)
+
+
+def prepare_owner(resource):
+    if resource.owner:
+        return resource.owner.username
+    else:
+        return None
+
+
+def prepare_owner_first(resource):
+    if resource.owner.first_name:
+        return resource.owner.first_name
+    else:
+        return None
+
+
+def prepare_owner_last(resource):
+    if resource.owner.last_name:
+        return resource.owner.last_name
+    else:
+        return None
+
+
+def prepare_source_host(resource):
+    if resource.service is not None and resource.service.method == INDEXED:
+        return urlparse(resource.service.base_url).netloc
+    else:
+        return None
+
+
+def prepare_title(resource):
+    if resource.service is not None:
+        return '{} {}'.format(resource.service.title.strip(), resource.title)
+    else:
+        return resource.title
+
+
+def prepare_references(resource):
+    return [{
+        'name': link.name,
+        'scheme': link.link_type,
+        'url': link.url
+    } for link in resource.link_set.ows()]
+
+
+def prepare_subtype(resource):
+    if resource.storeType == "dataStore":
+        return "vector"
+    elif resource.storeType == "coverageStore":
+        return "raster"
+    elif resource.storeType == "remoteStore":
+        return "remote"
+    else:
+        return None
+
+
+# Check to see if either time extent is set on the object,
+# if so, then it is time enabled.
+def prepare_has_time(resource):
+    try:
+        # if either time field is set to a value then time is enabled.
+        if (resource.temporal_extent_start is not None or
+                resource.temporal_extent_end is not None):
+            return True
+    except AttributeError:
+        # when in doubt, it's false.
+        return False
+
 
 class LayerIndex(DocType):
     id = Integer()
@@ -129,6 +265,53 @@ class LayerIndex(DocType):
         index = 'layer-index'
 
 
+def create_layer_index(layer):
+    obj = LayerIndex(
+        meta={'id': layer.id},
+        id=layer.id,
+        abstract=layer.abstract,
+        category__gn_description=prepare_category_gn_description(layer),
+        csw_type=layer.csw_type,
+        csw_wkt_geometry=layer.csw_wkt_geometry,
+        detail_url=layer.get_absolute_url(),
+        owner__username=prepare_owner(layer),
+        owner__first_name=prepare_owner_first(layer),
+        owner__last_name=prepare_owner_last(layer),
+        is_published=layer.is_published,
+        featured=layer.featured,
+        popular_count=layer.popular_count,
+        share_count=layer.share_count,
+        rating=prepare_rating(layer),
+        srid=layer.srid,
+        supplemental_information=prepare_supplemental_information(layer),
+        thumbnail_url=layer.thumbnail_url,
+        uuid=layer.uuid,
+        title=prepare_title(layer),
+        date=layer.date,
+        type="layer",
+        subtype=prepare_subtype(layer),
+        typename=layer.service_typename,
+        title_sortable=prepare_title_sortable(layer),
+        category=prepare_category(layer),
+        bbox_left=layer.bbox_x0,
+        bbox_right=layer.bbox_x1,
+        bbox_bottom=layer.bbox_y0,
+        bbox_top=layer.bbox_y1,
+        temporal_extent_start=layer.temporal_extent_start,
+        temporal_extent_end=layer.temporal_extent_end,
+        keywords=layer.keyword_slug_list(),
+        regions=layer.region_name_list(),
+        num_ratings=prepare_num_ratings(layer),
+        num_comments=prepare_num_comments(layer),
+        geogig_link=layer.geogig_link,
+        has_time=prepare_has_time(layer),
+        references=prepare_references(layer),
+        source_host=prepare_source_host(layer)
+    )
+    obj.save()
+    return obj.to_dict(include_meta=True)
+
+
 class MapIndex(DocType):
     id = Integer()
     abstract = Text(
@@ -196,6 +379,43 @@ class MapIndex(DocType):
 
     class Meta:
         index = 'map-index'
+
+
+def create_map_index(map):
+    obj = MapIndex(
+        meta={'id': map.id},
+        id=map.id,
+        abstract=map.abstract,
+        category__gn_description=prepare_category_gn_description(map),
+        csw_type=map.csw_type,
+        csw_wkt_geometry=map.csw_wkt_geometry,
+        detail_url=map.get_absolute_url(),
+        owner__username=prepare_owner(map),
+        popular_count=map.popular_count,
+        share_count=map.share_count,
+        rating=prepare_rating(map),
+        srid=map.srid,
+        supplemental_information=prepare_supplemental_information(map),
+        thumbnail_url=map.thumbnail_url,
+        uuid=map.uuid,
+        title=map.title,
+        date=map.date,
+        type=map.prepare_type(),
+        title_sortable=map.prepare_title_sortable(),
+        category=map.prepare_category(),
+        bbox_left=map.bbox_x0,
+        bbox_right=map.bbox_x1,
+        bbox_bottom=map.bbox_y0,
+        bbox_top=map.bbox_y1,
+        temporal_extent_start=map.temporal_extent_start,
+        temporal_extent_end=map.temporal_extent_end,
+        keywords=map.keyword_slug_list(),
+        regions=map.region_name_list(),
+        num_ratings=prepare_num_ratings(map),
+        num_comments=prepare_num_comments(map),
+    )
+    obj.save()
+    return obj.to_dict(include_meta=True)
 
 
 class DocumentIndex(DocType):
@@ -267,6 +487,43 @@ class DocumentIndex(DocType):
         index = 'document-index'
 
 
+def create_document_index(document):
+    obj = DocumentIndex(
+        meta={'id': document.id},
+        id=document.id,
+        abstract=document.abstract,
+        category__gn_description=prepare_category_gn_description(document),
+        csw_type=document.csw_type,
+        csw_wkt_geometry=document.csw_wkt_geometry,
+        detail_url=document.get_absolute_url(),
+        owner__username=prepare_owner(document),
+        popular_count=document.popular_count,
+        share_count=document.share_count,
+        rating=prepare_rating(document),
+        srid=document.srid,
+        supplemental_information=prepare_supplemental_information(document),
+        thumbnail_url=document.thumbnail_url,
+        uuid=document.uuid,
+        title=document.title,
+        date=document.date,
+        type="document",
+        title_sortable=document.title.lower(),
+        category=prepare_category(document),
+        bbox_left=document.bbox_x0,
+        bbox_right=document.bbox_x1,
+        bbox_bottom=document.bbox_y0,
+        bbox_top=document.bbox_y1,
+        temporal_extent_start=document.temporal_extent_start,
+        temporal_extent_end=document.temporal_extent_end,
+        keywords=document.keyword_slug_list(),
+        regions=document.region_name_list(),
+        num_ratings=prepare_num_ratings(document),
+        num_comments=prepare_num_comments(document),
+    )
+    obj.save()
+    return obj.to_dict(include_meta=True)
+
+
 class ProfileIndex(DocType):
     id = Integer()
     username = Text()
@@ -288,6 +545,7 @@ class ProfileIndex(DocType):
 
     class Meta:
         index = 'profile-index'
+
 
 def create_profile_index(profile):
     # calculate counts and avatar
@@ -349,5 +607,24 @@ class GroupIndex(DocType):
         index = 'group-index'
 
 
-
-
+def create_group_index(group):
+    obj = GroupIndex(
+        meta={'id': group.id},
+        id=group.id,
+        title=group.title,
+        title_sortable=group.title.lower(),
+        description=group.description,
+        json=json.dumps({
+            "_type": "group",
+            "title": group.title,
+            "description": group.description,
+            "keywords": [
+                keyword.name for keyword in group.keywords.all()
+            ] if group.keywords else [],
+            "thumb": settings.STATIC_URL + "static/img/contact.png",
+            "detail": None,
+        }),
+        type="group",
+    )
+    obj.save()
+    return obj.to_dict(include_meta=True)

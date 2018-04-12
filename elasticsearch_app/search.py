@@ -39,6 +39,25 @@ pattern_analyzer = analyzer(
 
 
 # Functions used to prepare columns for index
+def float_or_none(val):
+    try:
+        return float(val)
+    except TypeError:
+        return None
+
+def prepare_bbox(resource):
+    minx = float_or_none(resource.bbox_x0)
+    maxx = float_or_none(resource.bbox_x1)
+    miny = float_or_none(resource.bbox_y0)
+    maxy = float_or_none(resource.bbox_y1)
+    if (minx and maxx and miny and maxy and
+            minx < maxx and miny < maxy):
+        return minx, maxx, miny, maxy
+    return None, None, None, None
+
+        
+
+
 def prepare_rating(resource):
     ct = ContentType.objects.get_for_model(resource)
     try:
@@ -266,6 +285,7 @@ class LayerIndex(DocType):
 
 
 def create_layer_index(layer):
+    bbox_left, bbox_right, bbox_bottom, bbox_top = prepare_bbox(layer)
     obj = LayerIndex(
         meta={'id': layer.id},
         id=layer.id,
@@ -293,10 +313,10 @@ def create_layer_index(layer):
         typename=layer.service_typename,
         title_sortable=prepare_title_sortable(layer),
         category=prepare_category(layer),
-        bbox_left=layer.bbox_x0,
-        bbox_right=layer.bbox_x1,
-        bbox_bottom=layer.bbox_y0,
-        bbox_top=layer.bbox_y1,
+        bbox_left=bbox_left,
+        bbox_right=bbox_right,
+        bbox_bottom=bbox_bottom,
+        bbox_top=bbox_top,
         temporal_extent_start=layer.temporal_extent_start,
         temporal_extent_end=layer.temporal_extent_end,
         keywords=layer.keyword_slug_list(),
@@ -382,6 +402,7 @@ class MapIndex(DocType):
 
 
 def create_map_index(map):
+    bbox_left, bbox_right, bbox_bottom, bbox_top = prepare_bbox(map)
     obj = MapIndex(
         meta={'id': map.id},
         id=map.id,
@@ -400,13 +421,13 @@ def create_map_index(map):
         uuid=map.uuid,
         title=map.title,
         date=map.date,
-        type=map.prepare_type(),
+        type='map',
         title_sortable=map.prepare_title_sortable(),
         category=map.prepare_category(),
-        bbox_left=map.bbox_x0,
-        bbox_right=map.bbox_x1,
-        bbox_bottom=map.bbox_y0,
-        bbox_top=map.bbox_y1,
+        bbox_left=bbox_left,
+        bbox_right=bbox_right,
+        bbox_bottom=bbox_bottom,
+        bbox_top=bbox_top,
         temporal_extent_start=map.temporal_extent_start,
         temporal_extent_end=map.temporal_extent_end,
         keywords=map.keyword_slug_list(),
@@ -488,6 +509,7 @@ class DocumentIndex(DocType):
 
 
 def create_document_index(document):
+    bbox_left, bbox_right, bbox_bottom, bbox_top = prepare_bbox(document)
     obj = DocumentIndex(
         meta={'id': document.id},
         id=document.id,
@@ -509,10 +531,10 @@ def create_document_index(document):
         type="document",
         title_sortable=document.title.lower(),
         category=prepare_category(document),
-        bbox_left=document.bbox_x0,
-        bbox_right=document.bbox_x1,
-        bbox_bottom=document.bbox_y0,
-        bbox_top=document.bbox_y1,
+        bbox_left=bbox_left,
+        bbox_right=bbox_right,
+        bbox_bottom=bbox_bottom,
+        bbox_top=bbox_top,
         temporal_extent_start=document.temporal_extent_start,
         temporal_extent_end=document.temporal_extent_end,
         keywords=document.keyword_slug_list(),
@@ -614,17 +636,7 @@ def create_group_index(group):
         title=group.title,
         title_sortable=group.title.lower(),
         description=group.description,
-        json=json.dumps({
-            "_type": "group",
-            "title": group.title,
-            "description": group.description,
-            "keywords": [
-                keyword.name for keyword in group.keywords.all()
-            ] if group.keywords else [],
-            "thumb": settings.STATIC_URL + "static/img/contact.png",
-            "detail": None,
-        }),
-        type="group",
+        type="group"
     )
     obj.save()
     return obj.to_dict(include_meta=True)

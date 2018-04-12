@@ -17,7 +17,7 @@ def index_object(object, index=None):
     elif classname == 'Document':
         return search.create_document_index(object)
     elif classname == 'Layer':
-        return search.create_document_index(object)
+        return search.create_layer_index(object)
     elif classname == 'Map':
         return search.create_map_index(object)
     elif hasattr(object, 'indexing'):

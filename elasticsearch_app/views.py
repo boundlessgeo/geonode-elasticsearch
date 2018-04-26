@@ -41,7 +41,7 @@ def get_unified_search_result_objects(hits):
     for hit in hits:
         try:
             source = hit.get('_source')
-        except:  # No source
+        except:  # noqa -no specific exception
             pass
         result = {}
         result['index'] = hit.get('_index', None)

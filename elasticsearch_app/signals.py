@@ -25,8 +25,6 @@ except ImportError:
 # import statements for the models you need from your
 # project here
 
-
-
 if geonode_imported:
     @receiver(post_save, sender=Layer)
     def layer_index_post(sender, instance, **kwargs):
@@ -39,15 +37,14 @@ if geonode_imported:
         if not created:
             for instance in service.layer_set.all():
                 index_object(instance, LayerIndex)
-                index_object(instance.owner, ProfileIndex)  
-        
+                index_object(instance.owner, ProfileIndex)
+
     @receiver(post_delete, sender=Layer)
     def layer_index_delete(sender, instance, **kwargs):
         index_to_remove = LayerIndex.get(instance.id)
         if index_to_remove:
             index_to_remove.delete()
         index_object(instance.owner, ProfileIndex)
-
 
     @receiver(post_save, sender=Map)
     def map_index_post(sender, instance, **kwargs):

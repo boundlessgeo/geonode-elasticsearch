@@ -24,10 +24,6 @@ from django.db.models import Avg
 from django.core.exceptions import ObjectDoesNotExist
 from geonode.services.enumerations import INDEXED
 from six.moves.urllib_parse import urlparse
-try:
-    import json
-except ImportError:
-    from django.utils import simplejson as json
 
 connections.create_connection(hosts=[settings.ES_URL])
 
@@ -46,6 +42,7 @@ def float_or_none(val):
     except TypeError:
         return None
 
+
 def prepare_bbox(resource):
     minx = float_or_none(resource.bbox_x0)
     maxx = float_or_none(resource.bbox_x1)
@@ -55,8 +52,6 @@ def prepare_bbox(resource):
             minx < maxx and miny < maxy):
         return minx, maxx, miny, maxy
     return None, None, None, None
-
-        
 
 
 def prepare_rating(resource):

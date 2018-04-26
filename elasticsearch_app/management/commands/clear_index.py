@@ -1,6 +1,11 @@
 # encoding: utf-8
 
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (
+    absolute_import,
+    division,
+    print_function,
+    unicode_literals
+)
 
 from django.core.management.base import BaseCommand
 from django.conf import settings
@@ -30,4 +35,4 @@ class Command(BaseCommand):
             try:
                 es.indices.delete(index=index)
             except TransportError:
-                self.stdout.write("ERROR: Could not find index to delete: %s" % index)
+                self.stdout.write("ERROR: Could not find index to delete: {}".format(index))

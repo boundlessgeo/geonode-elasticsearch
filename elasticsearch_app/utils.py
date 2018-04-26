@@ -1,5 +1,6 @@
 from elasticsearch_app import search
 
+
 def index_object(object, index=None):
     '''
     Indexes an object into its appropriate model index.
@@ -11,13 +12,13 @@ def index_object(object, index=None):
     '''
     try:
         classname = object.__class__.__name_
-    except:
+    except AttributeError:
         classname = None
 
     if classname is None:
         try:
             classname = object.class_name()
-        except:
+        except TypeError:
             classname = object.class_name
 
     if classname == 'Profile':

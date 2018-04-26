@@ -9,10 +9,22 @@ def index_object(object, index=None):
     :param index: The search index to put the object in
     :return: A dict of the successfully indexed object
     '''
-    classname = object.__class__.__name__
+    try:
+        classname = object.__class__.__name_
+    except:
+        classname = None
+
+    if classname is None:
+        try:
+            classname = object.class_name()
+        except:
+            classname = object.class_name
+
     if classname == 'Profile':
         return search.create_profile_index(object)
     elif classname == 'Group':
+        return search.create_group_index(object)
+    elif classname == 'GroupProfile':
         return search.create_group_index(object)
     elif classname == 'Document':
         return search.create_document_index(object)

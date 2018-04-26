@@ -21,6 +21,7 @@ from django.contrib.contenttypes.models import ContentType
 from agon_ratings.models import OverallRating
 from dialogos.models import Comment
 from django.db.models import Avg
+from django.core.exceptions import ObjectDoesNotExist
 from geonode.services.enumerations import INDEXED
 from six.moves.urllib_parse import urlparse
 try:
@@ -93,7 +94,7 @@ def prepare_num_comments(resource):
 
 
 def prepare_title_sortable(resource):
-    return resource.prepare_title().lower()
+    return prepare_title(resource).lower()
 
 
 def prepare_category(resource):
@@ -144,7 +145,12 @@ def prepare_source_host(resource):
 
 
 def prepare_title(resource):
-    if resource.service is not None:
+    try:
+        resource_service = resource.service
+    except ObjectDoesNotExist:
+        resource_service = None
+
+    if resource_service is not None:
         return '{} {}'.format(resource.service.title.strip(), resource.title)
     else:
         return resource.title
@@ -422,8 +428,8 @@ def create_map_index(map):
         title=map.title,
         date=map.date,
         type='map',
-        title_sortable=map.prepare_title_sortable(),
-        category=map.prepare_category(),
+        title_sortable=prepare_title_sortable(map),
+        category=prepare_category(map),
         bbox_left=bbox_left,
         bbox_right=bbox_right,
         bbox_bottom=bbox_bottom,

@@ -565,6 +565,7 @@ class ProfileIndex(DocType):
     layers_count = Integer()
     maps_count = Integer()
     documents_count = Integer()
+    profile_detail_url = Text()
 
     class Meta:
         index = 'profile-index'
@@ -602,7 +603,10 @@ def create_profile_index(profile):
         avatar_100=avatar_100,
         layers_count=layers_count,
         maps_count=maps_count,
-        documents_count=documents_count
+        documents_count=documents_count,
+        profile_detail_url="/people/profile/{username}/".format(
+            username=profile.username
+        )
     )
     obj.save()
     return obj.to_dict(include_meta=True)
@@ -625,6 +629,7 @@ class GroupIndex(DocType):
             'english': field.Text(analyzer='english')
         }
     )
+    detail_url = Text()
 
     class Meta:
         index = 'group-index'
@@ -637,7 +642,10 @@ def create_group_index(group):
         title=group.title,
         title_sortable=group.title.lower(),
         description=group.description,
-        type="group"
+        type="group",
+        detail_url="/groups/group/{title}".format(
+            title=group.title
+        )
     )
     obj.save()
     return obj.to_dict(include_meta=True)

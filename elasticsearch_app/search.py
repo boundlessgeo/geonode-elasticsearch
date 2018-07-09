@@ -273,8 +273,8 @@ class LayerIndex(DocType):
     geogig_link = Keyword()
     has_time = Boolean()
 
-    class Meta:
-        index = 'layer-index'
+    class Index:
+        name = 'layer-index'
 
 
 def create_layer_index(layer):
@@ -390,8 +390,8 @@ class MapIndex(DocType):
     num_ratings = Integer()
     num_comments = Integer()
 
-    class Meta:
-        index = 'map-index'
+    class Index:
+        name = 'map-index'
 
 
 def create_map_index(map):
@@ -497,8 +497,8 @@ class DocumentIndex(DocType):
     num_ratings = Integer()
     num_comments = Integer()
 
-    class Meta:
-        index = 'document-index'
+    class Index:
+        name = 'document-index'
 
 
 def create_document_index(document):
@@ -559,8 +559,8 @@ class ProfileIndex(DocType):
     documents_count = Integer()
     profile_detail_url = Text()
 
-    class Meta:
-        index = 'profile-index'
+    class Index:
+        name = 'profile-index'
 
 
 def create_profile_index(profile):
@@ -623,8 +623,8 @@ class GroupIndex(DocType):
     )
     detail_url = Text()
 
-    class Meta:
-        index = 'group-index'
+    class Index:
+        name = 'group-index'
 
 
 def create_group_index(group):

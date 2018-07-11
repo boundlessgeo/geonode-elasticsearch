@@ -613,6 +613,7 @@ class GroupIndex(DocType):
         }
     )
     title_sortable = Keyword()
+    slug = Text()
     description = Text()
     json = Text()
     type = Keyword(
@@ -632,11 +633,12 @@ def create_group_index(group):
         meta={'id': group.id},
         id=group.id,
         title=group.title,
+        slug=group.slug,
         title_sortable=group.title.lower(),
         description=group.description,
         type="group",
-        detail_url="/groups/group/{title}".format(
-            title=group.title
+        detail_url="/groups/group/{slug}".format(
+            slug=group.slug
         )
     )
     obj.save()

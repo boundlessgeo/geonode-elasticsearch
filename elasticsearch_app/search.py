@@ -95,10 +95,10 @@ def prepare_title_sortable(resource):
 def prepare_category(resource):
     if resource.category:
         return resource.category.identifier
-    elif resource.service and resource.service.category:
-        return resource.service.category.identifier
-    else:
-        return None
+    elif resource.service: 
+        if resource.service.category:
+            return resource.service.category.identifier
+    return None
 
 
 def prepare_category_gn_description(resource):

@@ -95,9 +95,12 @@ def prepare_title_sortable(resource):
 def prepare_category(resource):
     if resource.category:
         return resource.category.identifier
-    elif resource.service: 
-        if resource.service.category:
-            return resource.service.category.identifier
+    try:
+        if resource.service is not None:
+            if resource.service.category is not None:
+                return resource.service.category.identifier
+    except ObjectDoesNotExist:
+        pass
     return None
 
 

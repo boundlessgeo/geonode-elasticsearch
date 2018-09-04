@@ -100,7 +100,8 @@ def get_facet_settings():
         'type': {'open': True, 'display': 'Type'},
         'subtype': {'open': True, 'display': 'Data Type'},
         'keywords': {'show': True},
-        'references.scheme': {'show': True, 'display': 'Service Type'}
+        'references.scheme': {'show': True, 'display': 'Service Type'},
+        'license': {'show:': True, 'display': 'License'}
     }
 
     if additional_facets:
@@ -163,7 +164,8 @@ def get_facet_fields():
         'keywords',
         'category',
         'source_host',
-        'references.scheme'
+        'references.scheme',
+        'license'
     ]
 
     if additional_facets:
@@ -264,7 +266,8 @@ def get_main_query(search, query):
         'type.text',
         'type.english',
         'references.scheme.text',
-        'references.scheme.pattern'
+        'references.scheme.pattern',
+        'license.english'
     ]
 
     # Build main query to search in fields[]

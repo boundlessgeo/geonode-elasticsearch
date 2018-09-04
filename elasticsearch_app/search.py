@@ -179,6 +179,11 @@ def prepare_has_time(resource):
         # when in doubt, it's false.
         return False
 
+def prepare_license(resource):
+    if resource.license and resource.license.name:
+        return resource.license.name
+    else:
+        return None
 
 class LayerIndex(DocType):
     id = Integer()
@@ -277,6 +282,12 @@ class LayerIndex(DocType):
     num_comments = Integer()
     geogig_link = Keyword()
     has_time = Boolean()
+    license = Keyword(
+        fields={
+            'text': field.Text(),
+            'english': field.Text(analyzer='english')
+        }
+    )
 
     class Meta:
         index = 'layer-index'
@@ -324,7 +335,8 @@ def create_layer_index(layer):
         geogig_link=layer.geogig_link,
         has_time=prepare_has_time(layer),
         references=prepare_references(layer),
-        source_host=prepare_source_host(layer)
+        source_host=prepare_source_host(layer),
+        license=prepare_license(layer),
     )
     obj.save()
     return obj.to_dict(include_meta=True)

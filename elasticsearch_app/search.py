@@ -406,6 +406,12 @@ class MapIndex(DocType):
     )
     num_ratings = Integer()
     num_comments = Integer()
+    license = Keyword(
+        fields={
+            'text': field.Text(),
+            'english': field.Text(analyzer='english')
+        }
+    )
 
     class Meta:
         index = 'map-index'
@@ -444,6 +450,7 @@ def create_map_index(map):
         regions=map.region_name_list(),
         num_ratings=prepare_num_ratings(map),
         num_comments=prepare_num_comments(map),
+        license=prepare_license(map),
     )
     obj.save()
     return obj.to_dict(include_meta=True)
@@ -513,6 +520,12 @@ class DocumentIndex(DocType):
     )
     num_ratings = Integer()
     num_comments = Integer()
+    license = Keyword(
+        fields={
+            'text': field.Text(),
+            'english': field.Text(analyzer='english')
+        }
+    )
 
     class Meta:
         index = 'document-index'
@@ -551,6 +564,7 @@ def create_document_index(document):
         regions=document.region_name_list(),
         num_ratings=prepare_num_ratings(document),
         num_comments=prepare_num_comments(document),
+        license=prepare_license(document),
     )
     obj.save()
     return obj.to_dict(include_meta=True)

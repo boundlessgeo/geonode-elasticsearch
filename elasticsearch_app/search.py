@@ -288,6 +288,31 @@ class LayerIndex(DocType):
             'english': field.Text(analyzer='english')
         }
     )
+    classification = Keyword(
+        fields={
+            'text': field.Text(),
+            'english': field.Text(analyzer='english')
+        }
+    )
+    caveat = Keyword(
+        fields={
+            'text': field.Text(),
+            'english': field.Text(analyzer='english')
+        }
+    )
+    provenance = Keyword(
+        fields={
+            'text': field.Text(),
+            'english': field.Text(analyzer='english')
+        }
+    )
+    poc_name = Keyword(
+        fields={
+            'text': field.Text(),
+            'english': field.Text(analyzer='english')
+        }
+    )
+
 
     class Meta:
         index = 'layer-index'
@@ -337,6 +362,10 @@ def create_layer_index(layer):
         references=prepare_references(layer),
         source_host=prepare_source_host(layer),
         license=prepare_license(layer),
+        classification=layer.classification,
+        caveat=layer.caveat,
+        provenance=layer.provenance,
+        poc_name=layer.poc_name,
     )
     obj.save()
     return obj.to_dict(include_meta=True)

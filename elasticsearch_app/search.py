@@ -96,7 +96,7 @@ def prepare_category(resource):
     if resource.category:
         return resource.category.identifier
     try:
-        if resource.remote_service is not None:
+        if getattr(resource, 'remote_service', None):
             if resource.remote_service.category is not None:
                 return resource.remote_service.category.identifier
     except ObjectDoesNotExist:
@@ -138,7 +138,7 @@ def prepare_owner_last(resource):
 
 
 def prepare_source_host(resource):
-    if resource.remote_service is not None and resource.remote_service.method == INDEXED:
+    if getattr(resource, 'remote_service', None) and resource.remote_service.method == INDEXED:
         return urlparse(resource.remote_service.base_url).netloc
     else:
         return None

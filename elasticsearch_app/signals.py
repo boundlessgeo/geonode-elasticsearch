@@ -72,7 +72,11 @@ if geonode_imported:
 
     @receiver(post_save, sender=Profile)
     def profile_index_post(sender, instance, **kwargs):
-        index_object(instance, ProfileIndex)
+        # check for AnonymousUser creation signal as it created while migrating user_messages app
+        # and contentypes are not ready yet so it causes an error.
+        # TODO: revisit the solution.
+        if not (instance.username == 'AnonymousUser' and kwargs['created']):
+            index_object(instance, ProfileIndex)
 
     @receiver(post_delete, sender=Profile)
     def profile_index_delete(sender, instance, **kwargs):

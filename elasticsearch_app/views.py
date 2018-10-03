@@ -478,7 +478,8 @@ def elastic_search(request, resourcetype='base'):
 
     search = elasticsearch_dsl.Search(using=es, index=indices)
     # search = get_base_query(search)
-    search = apply_base_filter(request, search)
+    if resourcetype in ['layers', 'maps', 'documents']:
+        search = apply_base_filter(request, search)
 
     # Add facets to search
     for fn in get_facet_fields():

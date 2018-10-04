@@ -86,10 +86,12 @@ if geonode_imported:
 
     @receiver(post_delete, sender=GroupProfile)
     def group_index_delete(sender, instance, **kwargs):
-        index_to_remove = GroupIndex.get(instance.id)
-        if index_to_remove:
-            index_to_remove.delete()
-        index_object(instance.owner, ProfileIndex)
+        try:
+            index_to_remove = GroupIndex.get(instance.id)
+            if index_to_remove:
+                index_to_remove.delete()
+        except:
+            pass
 
 # To extend this app in your project, add a post_save
 # signal for every model you wish to index.

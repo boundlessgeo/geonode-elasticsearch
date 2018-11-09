@@ -179,11 +179,42 @@ def prepare_has_time(resource):
         # when in doubt, it's false.
         return False
 
+
 def prepare_license(resource):
     if resource.license and resource.license.name:
         return resource.license.name
     else:
         return None
+
+
+def prepare_classification(layer):
+    if layer.service and layer.service.classification:
+        return layer.service.classification
+    else:
+        return None
+
+
+def prepare_caveat(layer):
+    if layer.service and layer.service.caveat:
+        return layer.service.caveat
+    else:
+        return None
+
+
+def prepare_provenance(layer):
+    if layer.service and layer.service.provenance:
+        return layer.service.provenance
+    else:
+        return None
+
+
+def prepare_poc_name(layer):
+    if layer.exchangelayer and layer.exchangelayer.exchange_service and \
+            layer.exchangelayer.exchange_service.poc_name:
+        return layer.exchangelayer.exchange_service.poc_name
+    else:
+        return None
+
 
 class LayerIndex(DocType):
     id = Integer()
@@ -362,10 +393,10 @@ def create_layer_index(layer):
         references=prepare_references(layer),
         source_host=prepare_source_host(layer),
         license=prepare_license(layer),
-        classification=layer.classification,
-        caveat=layer.caveat,
-        provenance=layer.provenance,
-        poc_name=layer.poc_name,
+        classification=prepare_classification(layer),
+        caveat=prepare_caveat(layer),
+        provenance=prepare_provenance(layer),
+        poc_name=prepare_poc_name(layer),
     )
     obj.save()
     return obj.to_dict(include_meta=True)

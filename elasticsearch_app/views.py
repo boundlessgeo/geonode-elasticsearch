@@ -10,6 +10,7 @@ from six import iteritems
 
 from geonode.base.models import TopicCategory
 
+logging.basicConfig()
 logger = logging.getLogger(__name__)
 
 
@@ -130,22 +131,25 @@ def apply_base_filter(request, search):
     '''
     Filter results based on which objects geonode allows access to.
     '''
-
-    if not settings.SKIP_PERMS_FILTER:
-        # Get the list of objects the user has access to
-        filter_set = get_objects_for_user(
-            request.user,
-            'base.view_resourcebase'
-        )
-
+    if settings.SKIP_PERMS_FILTER is False:
         # Various resources do not have is_published,
         # which end up affecting results
         # if settings.RESOURCE_PUBLISHING:
-        # filter_set = filter_set.filter(is_published=True)
+        if not request.user.is_superuser:
+            logger.info('Filtering resources from search based on permissions')
+            # Get the list of objects the user has access to
+            filter_set = get_objects_for_user(
+                request.user,
+                'base.view_resourcebase'
+            )
 
-        filter_set_ids = map(str, filter_set.values_list('id', flat=True))
-        if len(filter_set_ids) > 0:
-            search = search.filter(Q('terms', id=filter_set_ids))
+            resource_uuids = map(str, filter_set.values_list('uuid', flat=True))
+            username = request.user.get_username()
+            logger.debug("Resource UUIDs: {}. Username: {}".format(resource_uuids, username))
+            search = search.filter(Q('terms', uuid=resource_uuids) | Q(
+                {"match": {"type": "group"}}) | Q(
+                {"match": {"type": "user"}})
+            )
 
         return search
 
@@ -478,8 +482,7 @@ def elastic_search(request, resourcetype='base'):
 
     search = elasticsearch_dsl.Search(using=es, index=indices)
     # search = get_base_query(search)
-    if resourcetype in ['layers', 'maps', 'documents']:
-        search = apply_base_filter(request, search)
+    search = apply_base_filter(request, search)
 
     # Add facets to search
     for fn in get_facet_fields():

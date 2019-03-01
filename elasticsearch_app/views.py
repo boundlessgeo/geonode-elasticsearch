@@ -382,6 +382,7 @@ def add_temporal_search(search, parameters):
 
 
 def apply_sort(search, sort):
+    # Layer & Map time filter
     if sort.lower() == "-date":
         search = search.sort(
             {"date": {
@@ -398,12 +399,53 @@ def apply_sort(search, sort):
                 "unmapped_type": "date"
             }}
         )
+    # Layer & Map & Group A-Z
     elif sort.lower() == "title":
         search = search.sort('title_sortable')
     elif sort.lower() == "-title":
         search = search.sort('-title_sortable')
+    # Layer & Map popularity filter
     elif sort.lower() == "-popular_count":
         search = search.sort('-popular_count')
+    # User time filter
+    elif sort.lower() == '-date_joined':
+        search = search.sort(
+            {"date_joined": {
+                "order": "desc",
+                "missing": "_last",
+                "unmapped_type": "date"
+            }}
+        )
+    elif sort.lower() == 'date_joined':
+        search = search.sort(
+            {"date_joined": {
+                "order": "asc",
+                "missing": "_last",
+                "unmapped_type": "date"
+            }}
+        )
+    # User A-Z
+    elif sort.lower() == 'username':
+        search = search.sort('username')
+    elif sort.lower() == '-username':
+        search = search.sort('-username')
+    # Group time filter
+    elif sort.lower() == '-last_modified':
+        search = search.sort(
+            {"last_modified": {
+                "order": "desc",
+                "missing": "_last",
+                "unmapped_type": "date"
+            }}
+        )
+    elif sort.lower() == 'last_modified':
+        search = search.sort(
+            {"last_modified": {
+                "order": "asc",
+                "missing": "_last",
+                "unmapped_type": "date"
+            }}
+        )
     else:
         search = search.sort(
             {"date": {

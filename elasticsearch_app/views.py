@@ -10,6 +10,7 @@ from six import iteritems
 
 from geonode.base.models import TopicCategory
 
+logging.basicConfig()
 logger = logging.getLogger(__name__)
 
 
@@ -135,22 +136,25 @@ def apply_base_filter(request, search):
     '''
     Filter results based on which objects geonode allows access to.
     '''
-
-    if not settings.SKIP_PERMS_FILTER:
-        # Get the list of objects the user has access to
-        filter_set = get_objects_for_user(
-            request.user,
-            'base.view_resourcebase'
-        )
-
+    if settings.SKIP_PERMS_FILTER is False:
         # Various resources do not have is_published,
         # which end up affecting results
         # if settings.RESOURCE_PUBLISHING:
-        # filter_set = filter_set.filter(is_published=True)
+        if not request.user.is_superuser:
+            logger.info('Filtering resources from search based on permissions')
+            # Get the list of objects the user has access to
+            filter_set = get_objects_for_user(
+                request.user,
+                'base.view_resourcebase'
+            )
 
-        filter_set_ids = map(str, filter_set.values_list('id', flat=True))
-        if len(filter_set_ids) > 0:
-            search = search.filter(Q('terms', id=filter_set_ids))
+            resource_uuids = map(str, filter_set.values_list('uuid', flat=True))
+            username = request.user.get_username()
+            logger.debug("Resource UUIDs: {}. Username: {}".format(resource_uuids, username))
+            search = search.filter(Q('terms', uuid=resource_uuids) | Q(
+                {"match": {"type": "group"}}) | Q(
+                {"match": {"type": "user"}})
+            )
 
         return search
 
@@ -397,6 +401,7 @@ def add_temporal_search(search, parameters):
 
 
 def apply_sort(search, sort):
+    # Layer & Map time filter
     if sort.lower() == "-date":
         search = search.sort(
             {"date": {
@@ -413,12 +418,53 @@ def apply_sort(search, sort):
                 "unmapped_type": "date"
             }}
         )
+    # Layer & Map & Group A-Z
     elif sort.lower() == "title":
         search = search.sort('title_sortable')
     elif sort.lower() == "-title":
         search = search.sort('-title_sortable')
+    # Layer & Map popularity filter
     elif sort.lower() == "-popular_count":
         search = search.sort('-popular_count')
+    # User time filter
+    elif sort.lower() == '-date_joined':
+        search = search.sort(
+            {"date_joined": {
+                "order": "desc",
+                "missing": "_last",
+                "unmapped_type": "date"
+            }}
+        )
+    elif sort.lower() == 'date_joined':
+        search = search.sort(
+            {"date_joined": {
+                "order": "asc",
+                "missing": "_last",
+                "unmapped_type": "date"
+            }}
+        )
+    # User A-Z
+    elif sort.lower() == 'username':
+        search = search.sort('username')
+    elif sort.lower() == '-username':
+        search = search.sort('-username')
+    # Group time filter
+    elif sort.lower() == '-last_modified':
+        search = search.sort(
+            {"last_modified": {
+                "order": "desc",
+                "missing": "_last",
+                "unmapped_type": "date"
+            }}
+        )
+    elif sort.lower() == 'last_modified':
+        search = search.sort(
+            {"last_modified": {
+                "order": "asc",
+                "missing": "_last",
+                "unmapped_type": "date"
+            }}
+        )
     else:
         search = search.sort(
             {"date": {

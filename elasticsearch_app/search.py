@@ -601,7 +601,12 @@ def create_document_index(document):
 
 class ProfileIndex(DocType):
     id = Integer()
-    username = Text()
+    username = Keyword(
+        fields={
+            'text': field.Text(),
+            'english': field.Text(analyzer='english')
+        }
+    )
     first_name = Text()
     last_name = Text()
     profile = Keyword()
@@ -618,6 +623,7 @@ class ProfileIndex(DocType):
     maps_count = Integer()
     documents_count = Integer()
     profile_detail_url = Text()
+    date_joined = Date()
 
     class Meta:
         index = 'profile-index'
@@ -658,7 +664,8 @@ def create_profile_index(profile):
         documents_count=documents_count,
         profile_detail_url="/people/profile/{username}/".format(
             username=profile.username
-        )
+        ),
+        date_joined=profile.date_joined
     )
     obj.save()
     return obj.to_dict(include_meta=True)
@@ -683,6 +690,7 @@ class GroupIndex(DocType):
         }
     )
     detail_url = Text()
+    last_modified = Date()
 
     class Meta:
         index = 'group-index'
@@ -699,7 +707,8 @@ def create_group_index(group):
         type="group",
         detail_url="/groups/group/{slug}".format(
             slug=group.slug
-        )
+        ),
+        last_modified=group.last_modified
     )
     obj.save()
     return obj.to_dict(include_meta=True)

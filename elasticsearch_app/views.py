@@ -10,6 +10,7 @@ from six import iteritems
 from django.contrib import messages
 
 from geonode.base.models import TopicCategory
+from elasticsearch_app.search import LayerIndex, MapIndex, DocumentIndex
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -616,4 +617,52 @@ def elastic_search(request, resourcetype='base'):
         "objects": objects,
     }
 
+    return JsonResponse(object_list)
+
+
+def get_suggestions(query, index, type, field):
+    """
+    Get all suggestions from elasticsearch given a query, index, and field.
+
+    :param query: The search query to get suggestions for
+    :param index: The index in Elastic to query from
+    :param type: The model corresponding to the index
+    :param field: The Completion field in the index to request suggests from
+    :return: list of all suggestions for this query in the format of:
+    {'title': suggestion, 'type': model}, where suggestion is the title
+    of the data and model is the corresponding model to the data
+    """
+    index_suggestions = index.search().suggest(
+        'title_suggestions', query, completion={'field': field}).execute()
+
+    suggest_results = []
+    if 'suggest' in index_suggestions:
+        for result in index_suggestions.suggest.title_suggestions:
+            for option in result.options:
+                suggest_results.append({
+                    'title': option.text,
+                    'type': type
+                })
+
+    return suggest_results
+
+
+def suggest_search(request):
+    search_query = request.GET.get('q', None)
+
+    if search_query is None:
+        return JsonResponse({})
+
+    suggestions = []
+    es_indices = [{'es_index': LayerIndex, 'type': 'layer'},
+                  {'es_index': MapIndex, 'type': 'map'},
+                  {'es_index': DocumentIndex, 'type': 'document'}]
+    for index in es_indices:
+        # 'title_suggest' is used for Completion() field for all indices
+        suggestions.extend(get_suggestions(search_query, index['es_index'],
+                                           index['type'], 'title_suggest'))
+
+    object_list = {
+        'objects': suggestions
+    }
     return JsonResponse(object_list)

@@ -1,5 +1,5 @@
 from django.conf.urls import patterns, url
-from elasticsearch_app.views import empty_page, elastic_search
+from elasticsearch_app.views import suggest_search, elastic_search
 
 urlpatterns = patterns(
     '',
@@ -7,6 +7,6 @@ urlpatterns = patterns(
         elastic_search,
         name='elastic_search'),
     url(r'^autocomplete',
-        empty_page,
-        name='autocomplete_override')
+        suggest_search,
+        name='autocomplete')
 )

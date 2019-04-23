@@ -7,6 +7,7 @@ from elasticsearch_dsl import (
     Float,
     Text,
     Field,
+    Completion,
     connections,
     field,
     analyzer
@@ -148,6 +149,11 @@ def prepare_title(resource):
     return resource.title
 
 
+# TODO: Should we display results this way?
+def prepare_title_suggest(resource):
+    return '{0} ({1})'.format(resource.title, type(resource).__name__)
+
+
 def prepare_references(resource):
     return [{
         'name': link.name,
@@ -238,6 +244,7 @@ class LayerIndex(DocType):
     )
     typename = Keyword()
     title_sortable = Keyword()
+    title_suggest = Completion()
     category = Keyword(
         fields={
             'text': field.Text(),
@@ -346,6 +353,7 @@ def create_layer_index(layer):
         subtype=prepare_subtype(layer),
         typename=layer.service_typename,
         title_sortable=prepare_title_sortable(layer),
+        title_suggest=prepare_title(layer),
         category=prepare_category(layer),
         bbox_left=bbox_left,
         bbox_right=bbox_right,
@@ -409,6 +417,7 @@ class MapIndex(DocType):
         }
     )
     title_sortable = Keyword()
+    title_suggest = Completion()
     category = Keyword(
         fields={
             'text': field.Text(),
@@ -468,6 +477,7 @@ def create_map_index(map):
         date=map.date,
         type='map',
         title_sortable=prepare_title_sortable(map),
+        title_suggest=prepare_title(map),
         category=prepare_category(map),
         bbox_left=bbox_left,
         bbox_right=bbox_right,
@@ -523,6 +533,7 @@ class DocumentIndex(DocType):
         }
     )
     title_sortable = Keyword()
+    title_suggest = Completion()
     category = Keyword(
         fields={
             'text': field.Text(),
@@ -578,10 +589,11 @@ def create_document_index(document):
         supplemental_information=prepare_supplemental_information(document),
         thumbnail_url=document.thumbnail_url,
         uuid=document.uuid,
-        title=document.title,
+        title=prepare_title(document),
         date=document.date,
         type="document",
-        title_sortable=document.title.lower(),
+        title_sortable=prepare_title_sortable(document),
+        title_suggest=prepare_title(document),
         category=prepare_category(document),
         bbox_left=bbox_left,
         bbox_right=bbox_right,

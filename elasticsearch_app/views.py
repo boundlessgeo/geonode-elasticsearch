@@ -629,20 +629,25 @@ def get_suggestions(query, index, type, field):
     :param type: The model corresponding to the index
     :param field: The Completion field in the index to request suggests from
     :return: list of all suggestions for this query in the format of:
-    {'title': suggestion, 'type': model}, where suggestion is the title
-    of the data and model is the corresponding model to the data
+    {'text': suggestion, 'type': model, 'id': autocomplete_id}, where
+    suggestion is the title of the data,
+    model is the corresponding model to the data, and
+    autocomplete_id is just an incremented integer
     """
     index_suggestions = index.search().suggest(
         'title_suggestions', query, completion={'field': field}).execute()
 
     suggest_results = []
+    autocomplete_id = 1
     if 'suggest' in index_suggestions:
         for result in index_suggestions.suggest.title_suggestions:
             for option in result.options:
                 suggest_results.append({
-                    'title': option.text,
-                    'type': type
+                    'text': option.text,
+                    'type': type,
+                    'id': autocomplete_id
                 })
+                autocomplete_id = autocomplete_id + 1
 
     return suggest_results
 

@@ -620,38 +620,6 @@ def elastic_search(request, resourcetype='base'):
     return JsonResponse(object_list)
 
 
-def get_suggestions(query, index, type, field):
-    """
-    Get all suggestions from elasticsearch given a query, index, and field.
-
-    :param query: The search query to get suggestions for
-    :param index: The index in Elastic to query from
-    :param type: The model corresponding to the index
-    :param field: The Completion field in the index to request suggests from
-    :return: list of all suggestions for this query in the format of:
-    {'text': suggestion, 'type': model, 'id': autocomplete_id}, where
-    suggestion is the title of the data,
-    model is the corresponding model to the data, and
-    autocomplete_id is just an incremented integer
-    """
-    index_suggestions = index.search().suggest(
-        'title_suggestions', query, completion={'field': field}).execute()
-
-    suggest_results = []
-    autocomplete_id = 1
-    if 'suggest' in index_suggestions:
-        for result in index_suggestions.suggest.title_suggestions:
-            for option in result.options:
-                suggest_results.append({
-                    'text': option.text,
-                    'type': type,
-                    'id': autocomplete_id
-                })
-                autocomplete_id = autocomplete_id + 1
-
-    return suggest_results
-
-
 def suggest_search(request):
     search_query = request.GET.get('q', None)
 
@@ -659,13 +627,54 @@ def suggest_search(request):
         return JsonResponse({})
 
     suggestions = []
-    es_indices = [{'es_index': LayerIndex, 'type': 'layer'},
-                  {'es_index': MapIndex, 'type': 'map'},
-                  {'es_index': DocumentIndex, 'type': 'document'}]
-    for index in es_indices:
-        # 'title_suggest' is used for Completion() field for all indices
-        suggestions.extend(get_suggestions(search_query, index['es_index'],
-                                           index['type'], 'title_suggest'))
+    # Give each result a unique id to work with select2 autocompletion
+    autocomplete_id = 1
+
+    # Repeat search through all resourcebase types: layer, map, document
+    layer_suggestions = LayerIndex.search().suggest(
+        'title_suggestions', search_query,
+        completion={'field': 'title_suggest'}).execute()
+    layer_results = []
+    if 'suggest' in layer_suggestions:
+        for result in layer_suggestions.suggest.title_suggestions:
+            for option in result.options:
+                layer_results.append({
+                    'text': option.text,
+                    'type': 'layer',
+                    'id': autocomplete_id
+                })
+                autocomplete_id = autocomplete_id + 1
+    suggestions.extend(layer_results)
+
+    map_suggestions = MapIndex.search().suggest(
+        'title_suggestions', search_query,
+        completion={'field': 'title_suggest'}).execute()
+    map_results = []
+    if 'suggest' in map_suggestions:
+        for result in map_suggestions.suggest.title_suggestions:
+            for option in result.options:
+                map_results.append({
+                    'text': option.text,
+                    'type': 'map',
+                    'id': autocomplete_id
+                })
+                autocomplete_id = autocomplete_id + 1
+    suggestions.extend(map_results)
+
+    document_suggestions = DocumentIndex.search().suggest(
+        'title_suggestions', search_query,
+        completion={'field': 'title_suggest'}).execute()
+    document_results = []
+    if 'suggest' in document_suggestions:
+        for result in document_suggestions.suggest.title_suggestions:
+            for option in result.options:
+                document_results.append({
+                    'text': option.text,
+                    'type': 'document',
+                    'id': autocomplete_id
+                })
+                autocomplete_id = autocomplete_id + 1
+    suggestions.extend(document_results)
 
     object_list = {
         'objects': suggestions

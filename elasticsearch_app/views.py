@@ -10,7 +10,13 @@ from six import iteritems
 from django.contrib import messages
 
 from geonode.base.models import TopicCategory
-from elasticsearch_app.search import LayerIndex, MapIndex, DocumentIndex
+from elasticsearch_app.search import (
+    LayerIndex,
+    MapIndex,
+    DocumentIndex,
+    ProfileIndex,
+    GroupIndex
+)
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -675,6 +681,69 @@ def suggest_search(request):
                 })
                 autocomplete_id = autocomplete_id + 1
     suggestions.extend(document_results)
+
+    object_list = {
+        'objects': suggestions
+    }
+    return JsonResponse(object_list)
+
+
+def suggest_search_people(request):
+    search_query = request.GET.get('q', None)
+
+    if search_query is None:
+        return JsonResponse({})
+
+    suggestions = []
+    # Give each result a unique id to work with select2 autocompletion
+    autocomplete_id = 1
+    people_suggestions = ProfileIndex.search().suggest(
+        'username_suggestions', search_query,
+        completion={'field': 'username_suggest'}).execute()
+    people_results = []
+    if 'suggest' in people_suggestions:
+        for result in people_suggestions.suggest.username_suggestions:
+            for option in result.options:
+                # Skip AnonymousUser
+                if option.text == 'AnonymousUser':
+                    continue
+                people_results.append({
+                    'text': option.text,
+                    'type': 'profile',
+                    'id': option.text
+                })
+                autocomplete_id = autocomplete_id + 1
+    suggestions.extend(people_results)
+
+    object_list = {
+        'objects': suggestions
+    }
+    return JsonResponse(object_list)
+
+
+def suggest_search_group(request):
+    search_query = request.GET.get('q', None)
+
+    if search_query is None:
+        return JsonResponse({})
+
+    suggestions = []
+    # Give each result a unique id to work with select2 autocompletion
+    autocomplete_id = 1
+    group_suggestions = GroupIndex.search().suggest(
+        'title_suggestions', search_query,
+        completion={'field': 'title_suggest'}).execute()
+    group_results = []
+    if 'suggest' in group_suggestions:
+        for result in group_suggestions.suggest.title_suggestions:
+            for option in result.options:
+                group_results.append({
+                    'text': option.text,
+                    'type': 'group',
+                    'id': option.text
+                })
+                autocomplete_id = autocomplete_id + 1
+    suggestions.extend(group_results)
 
     object_list = {
         'objects': suggestions

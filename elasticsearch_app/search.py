@@ -619,6 +619,7 @@ class ProfileIndex(DocType):
             'english': field.Text(analyzer='english')
         }
     )
+    username_suggest = Completion()
     first_name = Text()
     last_name = Text()
     profile = Keyword()
@@ -664,6 +665,7 @@ def create_profile_index(profile):
         meta={'id': profile.id},
         id=profile.id,
         username=profile.username,
+        username_suggest=profile.username,
         first_name=profile.first_name,
         last_name=profile.last_name,
         profile=profile.profile,
@@ -692,6 +694,7 @@ class GroupIndex(DocType):
         }
     )
     title_sortable = Keyword()
+    title_suggest = Completion()
     slug = Text()
     description = Text()
     json = Text()
@@ -715,6 +718,7 @@ def create_group_index(group):
         title=group.title,
         slug=group.slug,
         title_sortable=group.title.lower(),
+        title_suggest=group.title,
         description=group.description,
         type="group",
         detail_url="/groups/group/{slug}".format(

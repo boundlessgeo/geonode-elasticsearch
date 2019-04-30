@@ -235,7 +235,7 @@ def get_facet_results(aggregations, parameters):
 def get_main_query(search, query):
     # Set base fields to search
     fields = [
-        'username',
+        'username.text',
         'first_name'
         'last_name',
         'organization',

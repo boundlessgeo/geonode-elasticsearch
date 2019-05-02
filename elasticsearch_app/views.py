@@ -8,6 +8,7 @@ import elasticsearch_dsl
 from guardian.shortcuts import get_objects_for_user
 from six import iteritems
 from django.contrib import messages
+import json
 
 from geonode.base.models import TopicCategory
 
@@ -244,8 +245,8 @@ def get_facet_results(aggregations, parameters):
 def get_main_query(search, query):
     # Set base fields to search
     fields = [
-        'username',
-        'first_name',
+        'username.text',
+        'first_name'
         'last_name',
         'organization',
         'description',
@@ -616,4 +617,61 @@ def elastic_search(request, resourcetype='base'):
         "objects": objects,
     }
 
+    return JsonResponse(object_list)
+
+
+def suggest_search(request):
+    search_results = json.loads(elastic_search(request).content)
+    suggest_results = []
+
+    # Give each result a unique id to work with select2 autocompletion
+    autocomplete_id = 1
+    for item in search_results['objects']:
+        suggest_results.append({
+            'text': item['title'],
+            'type': item['type'],
+            'id': autocomplete_id
+        })
+        autocomplete_id = autocomplete_id + 1
+
+    object_list = {
+        'objects': suggest_results
+    }
+    return JsonResponse(object_list)
+
+
+def suggest_search_people(request):
+    search_results = json.loads(elastic_search(request, 'people').content)
+    suggest_results = []
+
+    for item in search_results['objects']:
+        # Don't include AnonymousUser in autocomplete results
+        if item['username'] == 'AnonymousUser':
+            continue
+        suggest_results.append({
+            'text': item['username'],
+            'type': item['type'],
+            'id': item['username']
+        })
+
+    object_list = {
+        'objects': suggest_results
+    }
+    return JsonResponse(object_list)
+
+
+def suggest_search_groups(request):
+    search_results = json.loads(elastic_search(request, 'groups').content)
+    suggest_results = []
+
+    for item in search_results['objects']:
+        suggest_results.append({
+            'text': item['title'],
+            'type': item['type'],
+            'id': item['title']
+        })
+
+    object_list = {
+        'objects': suggest_results
+    }
     return JsonResponse(object_list)

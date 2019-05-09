@@ -7,6 +7,7 @@ from elasticsearch_dsl import (
     Float,
     Text,
     Field,
+    GeoShape,
     connections,
     field,
     analyzer
@@ -52,6 +53,21 @@ def prepare_bbox(resource):
             minx < maxx and miny < maxy):
         return minx, maxx, miny, maxy
     return None, None, None, None
+
+
+def prepare_bbox_geoshape(resource):
+    minx = float_or_none(resource.bbox_x0)
+    maxx = float_or_none(resource.bbox_x1)
+    miny = float_or_none(resource.bbox_y0)
+    maxy = float_or_none(resource.bbox_y1)
+    if (minx and maxx and miny and maxy and
+            minx < maxx and miny < maxy):
+        geoshape = {
+            'type': 'envelope',
+            'coordinates': [[minx, miny], [maxx, maxy]]
+        }
+        return geoshape
+    return None
 
 
 def prepare_rating(resource):
@@ -239,6 +255,7 @@ class LayerIndex(DocType):
             'english': field.Text(analyzer='english')
         }
     )
+    location = GeoShape()
     bbox_left = Float()
     bbox_right = Float()
     bbox_bottom = Float()
@@ -311,6 +328,7 @@ def create_layer_index(layer):
         typename=layer.service_typename,
         title_sortable=prepare_title_sortable(layer),
         category=prepare_category(layer),
+        location=prepare_bbox_geoshape(layer),
         bbox_left=bbox_left,
         bbox_right=bbox_right,
         bbox_bottom=bbox_bottom,
@@ -374,6 +392,7 @@ class MapIndex(DocType):
             'english': field.Text(analyzer='english')
         }
     )
+    location = GeoShape()
     bbox_left = Float()
     bbox_right = Float()
     bbox_bottom = Float()
@@ -422,6 +441,7 @@ def create_map_index(map):
         type='map',
         title_sortable=prepare_title_sortable(map),
         category=prepare_category(map),
+        location=prepare_bbox_geoshape(map),
         bbox_left=bbox_left,
         bbox_right=bbox_right,
         bbox_bottom=bbox_bottom,
@@ -481,6 +501,7 @@ class DocumentIndex(DocType):
             'english': field.Text(analyzer='english')
         }
     )
+    location = GeoShape()
     bbox_left = Float()
     bbox_right = Float()
     bbox_bottom = Float()
@@ -529,6 +550,7 @@ def create_document_index(document):
         type="document",
         title_sortable=document.title.lower(),
         category=prepare_category(document),
+        location=prepare_bbox_geoshape(document),
         bbox_left=bbox_left,
         bbox_right=bbox_right,
         bbox_bottom=bbox_bottom,

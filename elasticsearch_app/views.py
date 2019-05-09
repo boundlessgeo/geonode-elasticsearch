@@ -350,6 +350,25 @@ def get_main_query(search, query):
     return search
 
 
+def add_geoshape_search(search, bbox):
+    # Add in Bounding Box filter
+    if bbox:
+        minx, miny, maxx, maxy = bbox.split(',')
+        bbox_filter = Q({'geo_shape': {
+            'location': {
+                'shape': {
+                    'type': 'envelope',
+                    'coordinates': [[float(minx), float(miny)],
+                                    [float(maxx), float(maxy)]]
+                },
+                'relation': 'intersects'
+            }
+        }})
+        search = search.query(bbox_filter)
+
+    return search
+
+
 def add_bbox_search(search, bbox):
     # Add in Bounding Box filter
     if bbox:
@@ -585,7 +604,7 @@ def elastic_search(request, resourcetype='base'):
     if parameters.get("has_time", False):
         search = search.query(Q({'match': {'has_time': True}}))
 
-    search = add_bbox_search(search, parameters.get("extent", None))
+    search = add_geoshape_search(search, parameters.get("extent", None))
     search = add_temporal_search(search, parameters)
     search = apply_sort(search, parameters.get("order_by", "relevance"))
 

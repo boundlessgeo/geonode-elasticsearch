@@ -7,6 +7,7 @@ from elasticsearch import Elasticsearch
 import elasticsearch_dsl
 from guardian.shortcuts import get_objects_for_user
 from six import iteritems
+from django.contrib import messages
 
 from geonode.base.models import TopicCategory
 
@@ -515,6 +516,21 @@ def filter_results_by_facets(aggregations, facet_results):
 def elastic_search(request, resourcetype='base'):
     parameters = request.GET
     es = Elasticsearch(settings.ES_URL)
+
+    if es.ping() is False:
+        error_msg = 'Could not connect to Elasticsearch. Either Elasticsearch'\
+                    + ' is down or ES_URL is not configured correctly'
+        messages.warning(request, error_msg)
+        logger.warn(error_msg)
+        logger.warn('ES_URL: {}'.format(settings.ES_URL))
+        # Serialize the messages for the front end
+        django_messages = []
+        for message in messages.get_messages(request):
+            django_messages.append({
+                "message": message.message,
+                "tags": message.tags
+            })
+        return JsonResponse({"messages": django_messages})
 
     # exclude the profile and group indexes.
     # They aren't being used, and cause issues with faceting

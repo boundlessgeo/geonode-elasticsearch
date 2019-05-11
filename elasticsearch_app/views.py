@@ -49,15 +49,7 @@ def get_unified_search_result_objects(hits):
         result = {}
         result['index'] = hit.get('_index', None)
         for key, value in source.iteritems():
-            if key == 'bbox':
-                result['bbox_left'] = value[0]
-                result['bbox_bottom'] = value[1]
-                result['bbox_right'] = value[2]
-                result['bbox_top'] = value[3]
-                # flake8 F841
-                # bbox_str = ','.join(map(str, value))
-            else:
-                result[key] = source.get(key, None)
+            result[key] = source.get(key, None)
         objects.append(result)
 
     return objects
@@ -335,12 +327,12 @@ def get_main_query(search, query):
     return search
 
 
-def add_geoshape_search(search, bbox):
+def add_bbox_search(search, bbox):
     # Add in Bounding Box filter
     if bbox:
         minx, miny, maxx, maxy = bbox.split(',')
         bbox_filter = Q({'geo_shape': {
-            'location': {
+            'bbox': {
                 'shape': {
                     'type': 'envelope',
                     'coordinates': [[float(minx), float(miny)],
@@ -351,20 +343,6 @@ def add_geoshape_search(search, bbox):
             'ignore_unmapped': True
         }})
         search = search.query(bbox_filter)
-
-    return search
-
-
-def add_bbox_search(search, bbox):
-    # Add in Bounding Box filter
-    if bbox:
-        left, bottom, right, top = bbox.split(',')
-        leftq = Q({'range': {'bbox_left': {'gte': float(left)}}})
-        bottomq = Q({'range': {'bbox_bottom': {'gte': float(bottom)}}})
-        rightq = Q({'range': {'bbox_right': {'lte': float(right)}}})
-        topq = Q({'range': {'bbox_top': {'lte': float(top)}}})
-        q = leftq & bottomq & rightq & topq
-        search = search.query(q)
 
     return search
 
@@ -590,7 +568,7 @@ def elastic_search(request, resourcetype='base'):
     if parameters.get("has_time", False):
         search = search.query(Q({'match': {'has_time': True}}))
 
-    search = add_geoshape_search(search, parameters.get("extent", None))
+    search = add_bbox_search(search, parameters.get("extent", None))
     search = add_temporal_search(search, parameters)
     search = apply_sort(search, parameters.get("order_by", "relevance"))
 

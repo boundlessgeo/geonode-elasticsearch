@@ -347,7 +347,8 @@ def add_geoshape_search(search, bbox):
                                     [float(maxx), float(maxy)]]
                 },
                 'relation': 'intersects'
-            }
+            },
+            'ignore_unmapped': True
         }})
         search = search.query(bbox_filter)
 

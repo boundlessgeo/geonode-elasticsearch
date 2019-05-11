@@ -51,17 +51,6 @@ def prepare_bbox(resource):
     maxy = float_or_none(resource.bbox_y1)
     if (minx and maxx and miny and maxy and
             minx < maxx and miny < maxy):
-        return minx, maxx, miny, maxy
-    return None, None, None, None
-
-
-def prepare_bbox_geoshape(resource):
-    minx = float_or_none(resource.bbox_x0)
-    maxx = float_or_none(resource.bbox_x1)
-    miny = float_or_none(resource.bbox_y0)
-    maxy = float_or_none(resource.bbox_y1)
-    if (minx and maxx and miny and maxy and
-            minx < maxx and miny < maxy):
         geoshape = {
             'type': 'envelope',
             'coordinates': [[minx, miny], [maxx, maxy]]
@@ -260,11 +249,7 @@ class LayerIndex(DocType):
             'english': field.Text(analyzer='english')
         }
     )
-    location = GeoShape()
-    bbox_left = Float()
-    bbox_right = Float()
-    bbox_bottom = Float()
-    bbox_top = Float()
+    bbox = GeoShape()
     temporal_extent_start = Date()
     temporal_extent_end = Date()
     keywords = Keyword(
@@ -336,7 +321,6 @@ class LayerIndex(DocType):
 
 
 def create_layer_index(layer):
-    bbox_left, bbox_right, bbox_bottom, bbox_top = prepare_bbox(layer)
     obj = LayerIndex(
         meta={'id': layer.id},
         id=layer.id,
@@ -364,11 +348,7 @@ def create_layer_index(layer):
         typename=layer.service_typename,
         title_sortable=prepare_title_sortable(layer),
         category=prepare_category(layer),
-        location=prepare_bbox_geoshape(layer),
-        bbox_left=bbox_left,
-        bbox_right=bbox_right,
-        bbox_bottom=bbox_bottom,
-        bbox_top=bbox_top,
+        bbox=prepare_bbox(layer),
         temporal_extent_start=layer.temporal_extent_start,
         temporal_extent_end=layer.temporal_extent_end,
         keywords=layer.keyword_slug_list(),
@@ -433,11 +413,7 @@ class MapIndex(DocType):
             'english': field.Text(analyzer='english')
         }
     )
-    location = GeoShape()
-    bbox_left = Float()
-    bbox_right = Float()
-    bbox_bottom = Float()
-    bbox_top = Float()
+    bbox = GeoShape()
     temporal_extent_start = Date()
     temporal_extent_end = Date()
     keywords = Keyword(
@@ -466,7 +442,6 @@ class MapIndex(DocType):
 
 
 def create_map_index(map):
-    bbox_left, bbox_right, bbox_bottom, bbox_top = prepare_bbox(map)
     obj = MapIndex(
         meta={'id': map.id},
         id=map.id,
@@ -488,11 +463,7 @@ def create_map_index(map):
         type='map',
         title_sortable=prepare_title_sortable(map),
         category=prepare_category(map),
-        location=prepare_bbox_geoshape(map),
-        bbox_left=bbox_left,
-        bbox_right=bbox_right,
-        bbox_bottom=bbox_bottom,
-        bbox_top=bbox_top,
+        bbox=prepare_bbox(map),
         temporal_extent_start=map.temporal_extent_start,
         temporal_extent_end=map.temporal_extent_end,
         keywords=map.keyword_slug_list(),
@@ -549,11 +520,7 @@ class DocumentIndex(DocType):
             'english': field.Text(analyzer='english')
         }
     )
-    location = GeoShape()
-    bbox_left = Float()
-    bbox_right = Float()
-    bbox_bottom = Float()
-    bbox_top = Float()
+    bbox = GeoShape()
     temporal_extent_start = Date()
     temporal_extent_end = Date()
     keywords = Keyword(
@@ -582,7 +549,6 @@ class DocumentIndex(DocType):
 
 
 def create_document_index(document):
-    bbox_left, bbox_right, bbox_bottom, bbox_top = prepare_bbox(document)
     obj = DocumentIndex(
         meta={'id': document.id},
         id=document.id,
@@ -604,11 +570,7 @@ def create_document_index(document):
         type="document",
         title_sortable=document.title.lower(),
         category=prepare_category(document),
-        location=prepare_bbox_geoshape(document),
-        bbox_left=bbox_left,
-        bbox_right=bbox_right,
-        bbox_bottom=bbox_bottom,
-        bbox_top=bbox_top,
+        bbox=prepare_bbox(document),
         temporal_extent_start=document.temporal_extent_start,
         temporal_extent_end=document.temporal_extent_end,
         keywords=document.keyword_slug_list(),

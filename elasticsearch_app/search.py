@@ -7,6 +7,7 @@ from elasticsearch_dsl import (
     Float,
     Text,
     Field,
+    GeoShape,
     connections,
     field,
     analyzer
@@ -24,6 +25,7 @@ from django.db.models import Avg
 from django.core.exceptions import ObjectDoesNotExist
 from geonode.services.enumerations import INDEXED
 from six.moves.urllib_parse import urlparse
+from geonode.utils import bbox_to_projection
 
 connections.create_connection(hosts=[settings.ES_URL])
 
@@ -44,14 +46,28 @@ def float_or_none(val):
 
 
 def prepare_bbox(resource):
-    minx = float_or_none(resource.bbox_x0)
-    maxx = float_or_none(resource.bbox_x1)
-    miny = float_or_none(resource.bbox_y0)
-    maxy = float_or_none(resource.bbox_y1)
+    bbox = resource.bbox[:4]
+    source_srid = None
+    if hasattr(resource, 'storeType'):
+        if resource.storeType == "remoteStore":
+            source_srid = resource.service.srid
+    if source_srid is None:
+        source_srid = resource.srid
+    # Elasticsearch needs all bbox values to conform to EPSG:4326
+    reprojected_bbox = bbox_to_projection(bbox, source_srid=source_srid,
+                                          target_srid=4326)
+    minx = float_or_none(reprojected_bbox[0])
+    miny = float_or_none(reprojected_bbox[1])
+    maxx = float_or_none(reprojected_bbox[2])
+    maxy = float_or_none(reprojected_bbox[3])
     if (minx and maxx and miny and maxy and
             minx < maxx and miny < maxy):
-        return minx, maxx, miny, maxy
-    return None, None, None, None
+        geoshape = {
+            'type': 'envelope',
+            'coordinates': [[minx, miny], [maxx, maxy]]
+        }
+        return geoshape
+    return None
 
 
 def prepare_rating(resource):
@@ -244,10 +260,7 @@ class LayerIndex(DocType):
             'english': field.Text(analyzer='english')
         }
     )
-    bbox_left = Float()
-    bbox_right = Float()
-    bbox_bottom = Float()
-    bbox_top = Float()
+    bbox = GeoShape()
     temporal_extent_start = Date()
     temporal_extent_end = Date()
     keywords = Keyword(
@@ -313,13 +326,11 @@ class LayerIndex(DocType):
         }
     )
 
-
     class Meta:
         index = 'layer-index'
 
 
 def create_layer_index(layer):
-    bbox_left, bbox_right, bbox_bottom, bbox_top = prepare_bbox(layer)
     obj = LayerIndex(
         meta={'id': layer.id},
         id=layer.id,
@@ -347,10 +358,7 @@ def create_layer_index(layer):
         typename=layer.service_typename,
         title_sortable=prepare_title_sortable(layer),
         category=prepare_category(layer),
-        bbox_left=bbox_left,
-        bbox_right=bbox_right,
-        bbox_bottom=bbox_bottom,
-        bbox_top=bbox_top,
+        bbox=prepare_bbox(layer),
         temporal_extent_start=layer.temporal_extent_start,
         temporal_extent_end=layer.temporal_extent_end,
         keywords=layer.keyword_slug_list(),
@@ -415,10 +423,7 @@ class MapIndex(DocType):
             'english': field.Text(analyzer='english')
         }
     )
-    bbox_left = Float()
-    bbox_right = Float()
-    bbox_bottom = Float()
-    bbox_top = Float()
+    bbox = GeoShape()
     temporal_extent_start = Date()
     temporal_extent_end = Date()
     keywords = Keyword(
@@ -447,7 +452,6 @@ class MapIndex(DocType):
 
 
 def create_map_index(map):
-    bbox_left, bbox_right, bbox_bottom, bbox_top = prepare_bbox(map)
     obj = MapIndex(
         meta={'id': map.id},
         id=map.id,
@@ -469,10 +473,7 @@ def create_map_index(map):
         type='map',
         title_sortable=prepare_title_sortable(map),
         category=prepare_category(map),
-        bbox_left=bbox_left,
-        bbox_right=bbox_right,
-        bbox_bottom=bbox_bottom,
-        bbox_top=bbox_top,
+        bbox=prepare_bbox(map),
         temporal_extent_start=map.temporal_extent_start,
         temporal_extent_end=map.temporal_extent_end,
         keywords=map.keyword_slug_list(),
@@ -529,10 +530,7 @@ class DocumentIndex(DocType):
             'english': field.Text(analyzer='english')
         }
     )
-    bbox_left = Float()
-    bbox_right = Float()
-    bbox_bottom = Float()
-    bbox_top = Float()
+    bbox = GeoShape()
     temporal_extent_start = Date()
     temporal_extent_end = Date()
     keywords = Keyword(
@@ -561,7 +559,6 @@ class DocumentIndex(DocType):
 
 
 def create_document_index(document):
-    bbox_left, bbox_right, bbox_bottom, bbox_top = prepare_bbox(document)
     obj = DocumentIndex(
         meta={'id': document.id},
         id=document.id,
@@ -583,10 +580,7 @@ def create_document_index(document):
         type="document",
         title_sortable=document.title.lower(),
         category=prepare_category(document),
-        bbox_left=bbox_left,
-        bbox_right=bbox_right,
-        bbox_bottom=bbox_bottom,
-        bbox_top=bbox_top,
+        bbox=prepare_bbox(document),
         temporal_extent_start=document.temporal_extent_start,
         temporal_extent_end=document.temporal_extent_end,
         keywords=document.keyword_slug_list(),

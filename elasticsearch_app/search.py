@@ -54,8 +54,11 @@ def prepare_bbox(resource):
     if source_srid is None:
         source_srid = resource.srid
     # Elasticsearch needs all bbox values to conform to EPSG:4326
-    reprojected_bbox = bbox_to_projection(bbox, source_srid=source_srid,
-                                          target_srid=4326)
+    reprojected_bbox = bbox
+    # Only reproject if bbox contains real values
+    if None not in bbox:
+        reprojected_bbox = bbox_to_projection(bbox, source_srid=source_srid,
+                                              target_srid=4326)
     minx = float_or_none(reprojected_bbox[0])
     miny = float_or_none(reprojected_bbox[1])
     maxx = float_or_none(reprojected_bbox[2])

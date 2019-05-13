@@ -25,6 +25,7 @@ from django.db.models import Avg
 from django.core.exceptions import ObjectDoesNotExist
 from geonode.services.enumerations import INDEXED
 from six.moves.urllib_parse import urlparse
+from geonode.utils import bbox_to_projection
 
 connections.create_connection(hosts=[settings.ES_URL])
 
@@ -45,10 +46,23 @@ def float_or_none(val):
 
 
 def prepare_bbox(resource):
-    minx = float_or_none(resource.bbox_x0)
-    maxx = float_or_none(resource.bbox_x1)
-    miny = float_or_none(resource.bbox_y0)
-    maxy = float_or_none(resource.bbox_y1)
+    bbox = resource.bbox[:4]
+    source_srid = None
+    if hasattr(resource, 'storeType'):
+        if resource.storeType == "remoteStore":
+            source_srid = resource.service.srid
+    if source_srid is None:
+        source_srid = resource.srid
+    # Elasticsearch needs all bbox values to conform to EPSG:4326
+    reprojected_bbox = bbox
+    # Only reproject if bbox contains real values
+    if None not in bbox:
+        reprojected_bbox = bbox_to_projection(bbox, source_srid=source_srid,
+                                              target_srid=4326)
+    minx = float_or_none(reprojected_bbox[0])
+    miny = float_or_none(reprojected_bbox[1])
+    maxx = float_or_none(reprojected_bbox[2])
+    maxy = float_or_none(reprojected_bbox[3])
     if (minx and maxx and miny and maxy and
             minx < maxx and miny < maxy):
         geoshape = {
@@ -314,7 +328,6 @@ class LayerIndex(DocType):
             'english': field.Text(analyzer='english')
         }
     )
-
 
     class Meta:
         index = 'layer-index'

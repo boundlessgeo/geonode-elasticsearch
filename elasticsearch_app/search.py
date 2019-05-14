@@ -26,6 +26,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from geonode.services.enumerations import INDEXED
 from six.moves.urllib_parse import urlparse
 from geonode.utils import bbox_to_projection
+from elasticsearch import TransportError
 import logging
 
 logging.basicConfig()
@@ -349,7 +350,14 @@ def create_layer_index(layer):
         references=prepare_references(layer),
         source_host=prepare_source_host(layer)
     )
-    obj.save()
+    try:
+        obj.save()
+    except TransportError as e:
+        error_msg = 'Error indexing layer: {0} [id: {1}]; bbox: {2}'.format(
+            obj.title, obj.id, obj.bbox
+        )
+        logger.error(error_msg)
+        logger.error(e.info)
     return obj.to_dict(include_meta=True)
 
 
@@ -449,7 +457,14 @@ def create_map_index(map):
         num_ratings=prepare_num_ratings(map),
         num_comments=prepare_num_comments(map),
     )
-    obj.save()
+    try:
+        obj.save()
+    except TransportError as e:
+        error_msg = 'Error indexing map: {0} [id: {1}]; bbox: {2}'.format(
+            obj.title, obj.id, obj.bbox
+        )
+        logger.error(error_msg)
+        logger.error(e.info)
     return obj.to_dict(include_meta=True)
 
 
@@ -549,7 +564,14 @@ def create_document_index(document):
         num_ratings=prepare_num_ratings(document),
         num_comments=prepare_num_comments(document),
     )
-    obj.save()
+    try:
+        obj.save()
+    except TransportError as e:
+        error_msg = 'Error indexing document: {0} [id: {1}]; bbox: {2}'.format(
+            obj.title, obj.id, obj.bbox
+        )
+        logger.error(error_msg)
+        logger.error(e.info)
     return obj.to_dict(include_meta=True)
 
 

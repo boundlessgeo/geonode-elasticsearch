@@ -63,22 +63,13 @@ def prepare_bbox(resource):
     if None not in bbox:
         reprojected_bbox = bbox_to_projection(bbox, source_srid=source_srid,
                                               target_srid=4326)
-        # Check for errors with reprojection
         # If last element is not srid, then it contains error message
         if 'EPSG' not in reprojected_bbox[4]:
             logger.warn(reprojected_bbox[4])
-            def _v(coord, x, source_srid=4326, target_srid=3857):
-                if source_srid == 4326 and target_srid != 4326:
-                    if x and coord >= 180.0:
-                        return 179.0
-                    elif x and coord <= -180.0:
-                        return -179.0
+            # Because the reprojection failed, there's no reliable way
+            # to translate the bbox to something usable, so just fail
+            return None
 
-                    if not x and coord >= 90.0:
-                        return 89.0
-                    elif not x and coord <= -90.0:
-                        return -89.0
-                return coord
     minx = float_or_none(reprojected_bbox[0])
     miny = float_or_none(reprojected_bbox[1])
     maxx = float_or_none(reprojected_bbox[2])

@@ -26,6 +26,11 @@ from django.core.exceptions import ObjectDoesNotExist
 from geonode.services.enumerations import INDEXED
 from six.moves.urllib_parse import urlparse
 from geonode.utils import bbox_to_projection
+from elasticsearch import TransportError
+import logging
+
+logging.basicConfig()
+logger = logging.getLogger(__name__)
 
 connections.create_connection(hosts=[settings.ES_URL])
 
@@ -59,6 +64,13 @@ def prepare_bbox(resource):
     if None not in bbox:
         reprojected_bbox = bbox_to_projection(bbox, source_srid=source_srid,
                                               target_srid=4326)
+        # If last element is not srid, then it contains error message
+        if 'EPSG' not in reprojected_bbox[4]:
+            logger.warn(reprojected_bbox[4])
+            # Because the reprojection failed, there's no reliable way
+            # to translate the bbox to something usable, so just fail
+            return None
+
     minx = float_or_none(reprojected_bbox[0])
     miny = float_or_none(reprojected_bbox[1])
     maxx = float_or_none(reprojected_bbox[2])
@@ -338,7 +350,14 @@ def create_layer_index(layer):
         references=prepare_references(layer),
         source_host=prepare_source_host(layer)
     )
-    obj.save()
+    try:
+        obj.save()
+    except TransportError as e:
+        error_msg = 'Error indexing layer: {0} [id: {1}]; bbox: {2}'.format(
+            obj.title, obj.id, obj.bbox
+        )
+        logger.error(error_msg)
+        logger.error(e.info)
     return obj.to_dict(include_meta=True)
 
 
@@ -438,7 +457,14 @@ def create_map_index(map):
         num_ratings=prepare_num_ratings(map),
         num_comments=prepare_num_comments(map),
     )
-    obj.save()
+    try:
+        obj.save()
+    except TransportError as e:
+        error_msg = 'Error indexing map: {0} [id: {1}]; bbox: {2}'.format(
+            obj.title, obj.id, obj.bbox
+        )
+        logger.error(error_msg)
+        logger.error(e.info)
     return obj.to_dict(include_meta=True)
 
 
@@ -538,7 +564,14 @@ def create_document_index(document):
         num_ratings=prepare_num_ratings(document),
         num_comments=prepare_num_comments(document),
     )
-    obj.save()
+    try:
+        obj.save()
+    except TransportError as e:
+        error_msg = 'Error indexing document: {0} [id: {1}]; bbox: {2}'.format(
+            obj.title, obj.id, obj.bbox
+        )
+        logger.error(error_msg)
+        logger.error(e.info)
     return obj.to_dict(include_meta=True)
 
 

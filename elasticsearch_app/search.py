@@ -210,11 +210,20 @@ def prepare_has_time(resource):
         # when in doubt, it's false.
         return False
 
+
 def prepare_license(resource):
     if resource.license and resource.license.name:
         return resource.license.name
     else:
         return None
+
+
+def prepare_slug(resource):
+    if resource.slug:
+        return resource.slug.replace('-', '_').lower()
+    else:
+        return None
+
 
 class LayerIndex(DocType):
     id = Integer()
@@ -710,7 +719,12 @@ class GroupIndex(DocType):
         }
     )
     title_sortable = Keyword()
-    slug = Text()
+    slug = Text(
+        fields={
+            'pattern': field.Text(analyzer=pattern_analyzer),
+            'english': field.Text(analyzer='english')
+        }
+    )
     description = Text()
     json = Text()
     type = Keyword(
@@ -731,7 +745,7 @@ def create_group_index(group):
         meta={'id': group.id},
         id=group.id,
         title=group.title,
-        slug=group.slug,
+        slug=prepare_slug(group),
         title_sortable=group.title.lower(),
         description=group.description,
         type="group",

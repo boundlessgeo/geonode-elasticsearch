@@ -9,8 +9,10 @@ from guardian.shortcuts import get_objects_for_user
 from six import iteritems
 from django.contrib import messages
 import json
+from .search import prepare_slug
 
 from geonode.base.models import TopicCategory
+from geonode.groups.models import GroupProfile
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -145,8 +147,12 @@ def apply_base_filter(request, search):
             resource_uuids = map(str, filter_set.values_list('uuid', flat=True))
             username = request.user.get_username()
             logger.debug("Resource UUIDs: {}. Username: {}".format(resource_uuids, username))
+            group_slugs = []
+            for group in GroupProfile.objects.all():
+                if group.can_view(request.user):
+                    group_slugs.append(prepare_slug(group))
             search = search.filter(Q('terms', uuid=resource_uuids) | Q(
-                {"match": {"type": "group"}}) | Q(
+                'terms', slug=group_slugs) | Q(
                 {"match": {"type": "user"}})
             )
 

@@ -100,7 +100,7 @@ def get_facet_settings():
         'classification': {'show:': True, 'display': 'Classification'},
         'caveat': {'show:': True, 'display': 'Caveat'},
         'provenance': {'show:': True, 'display': 'Provenance'},
-        'poc_name': {'show:': True, 'display': 'PoC Name'}
+        'poc_name': {'show:': True, 'display': 'PoC Name'},
     }
 
     if additional_facets:
@@ -400,6 +400,17 @@ def add_temporal_search(search, parameters):
     return search
 
 
+def add_id_search(search, parameters):
+    id_filters = parameters.get("ids", None)
+    if id_filters is not None:
+        all_ids = id_filters.split(',')
+        should = []
+        for rbid in all_ids:
+            should.append({'match': {'id': rbid}})
+        search = search.query(Q('bool', should=should, minimum_should_match=1))
+    return search
+
+
 def apply_sort(search, sort):
     # Layer & Map time filter
     if sort.lower() == "-date":
@@ -585,6 +596,7 @@ def elastic_search(request, resourcetype='base'):
 
     search = add_bbox_search(search, parameters.get("extent", None))
     search = add_temporal_search(search, parameters)
+    search = add_id_search(search, parameters)
     search = apply_sort(search, parameters.get("order_by", "relevance"))
 
     limit = int(parameters.get('limit', settings.API_LIMIT_PER_PAGE))

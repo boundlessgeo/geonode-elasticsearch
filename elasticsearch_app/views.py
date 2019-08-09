@@ -95,7 +95,12 @@ def get_facet_settings():
         'type': {'open': True, 'display': 'Type'},
         'subtype': {'open': True, 'display': 'Data Type'},
         'keywords': {'show': True},
-        'references.scheme': {'show': True, 'display': 'Service Type'}
+        'references.scheme': {'show': True, 'display': 'Service Type'},
+        'license': {'show:': True, 'display': 'License'},
+        'classification': {'show:': True, 'display': 'Classification'},
+        'caveat': {'show:': True, 'display': 'Caveat'},
+        'provenance': {'show:': True, 'display': 'Provenance'},
+        'poc_name': {'show:': True, 'display': 'PoC Name'}
     }
 
     if additional_facets:
@@ -161,7 +166,12 @@ def get_facet_fields():
         'keywords',
         'category',
         'source_host',
-        'references.scheme'
+        'references.scheme',
+        'license',
+        'classification',
+        'caveat',
+        'provenance',
+        'poc_name'
     ]
 
     if additional_facets:
@@ -262,7 +272,12 @@ def get_main_query(search, query):
         'type.text',
         'type.english',
         'references.scheme.text',
-        'references.scheme.pattern'
+        'references.scheme.pattern',
+        'license.english',
+        'classification.english',
+        'caveat.english',
+        'provenance.english',
+        'poc_name.english'
     ]
 
     # Build main query to search in fields[]

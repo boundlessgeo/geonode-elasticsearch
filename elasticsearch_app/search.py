@@ -211,6 +211,42 @@ def prepare_has_time(resource):
         return False
 
 
+def prepare_license(resource):
+    if resource.license and resource.license.name:
+        return resource.license.name
+    else:
+        return None
+
+
+def prepare_classification(layer):
+    if layer.service and layer.service.classification:
+        return layer.service.classification
+    else:
+        return None
+
+
+def prepare_caveat(layer):
+    if layer.service and layer.service.caveat:
+        return layer.service.caveat
+    else:
+        return None
+
+
+def prepare_provenance(layer):
+    if layer.service and layer.service.provenance:
+        return layer.service.provenance
+    else:
+        return None
+
+
+def prepare_poc_name(layer):
+    if layer.exchangelayer and layer.exchangelayer.exchange_service and \
+            layer.exchangelayer.exchange_service.poc_name:
+        return layer.exchangelayer.exchange_service.poc_name
+    else:
+        return None
+
+
 class LayerIndex(DocType):
     id = Integer()
     abstract = Text(
@@ -305,6 +341,37 @@ class LayerIndex(DocType):
     num_comments = Integer()
     geogig_link = Keyword()
     has_time = Boolean()
+    license = Keyword(
+        fields={
+            'text': field.Text(),
+            'english': field.Text(analyzer='english')
+        }
+    )
+    classification = Keyword(
+        fields={
+            'text': field.Text(),
+            'english': field.Text(analyzer='english')
+        }
+    )
+    caveat = Keyword(
+        fields={
+            'text': field.Text(),
+            'english': field.Text(analyzer='english')
+        }
+    )
+    provenance = Keyword(
+        fields={
+            'text': field.Text(),
+            'english': field.Text(analyzer='english')
+        }
+    )
+    poc_name = Keyword(
+        fields={
+            'text': field.Text(),
+            'english': field.Text(analyzer='english')
+        }
+    )
+
 
     class Meta:
         index = 'layer-index'
@@ -348,7 +415,12 @@ def create_layer_index(layer):
         geogig_link=layer.geogig_link,
         has_time=prepare_has_time(layer),
         references=prepare_references(layer),
-        source_host=prepare_source_host(layer)
+        source_host=prepare_source_host(layer),
+        license=prepare_license(layer),
+        classification=prepare_classification(layer),
+        caveat=prepare_caveat(layer),
+        provenance=prepare_provenance(layer),
+        poc_name=prepare_poc_name(layer),
     )
     try:
         obj.save()
@@ -422,6 +494,12 @@ class MapIndex(DocType):
     )
     num_ratings = Integer()
     num_comments = Integer()
+    license = Keyword(
+        fields={
+            'text': field.Text(),
+            'english': field.Text(analyzer='english')
+        }
+    )
 
     class Meta:
         index = 'map-index'
@@ -456,6 +534,7 @@ def create_map_index(map):
         regions=map.region_name_list(),
         num_ratings=prepare_num_ratings(map),
         num_comments=prepare_num_comments(map),
+        license=prepare_license(map),
     )
     try:
         obj.save()
@@ -529,6 +608,12 @@ class DocumentIndex(DocType):
     )
     num_ratings = Integer()
     num_comments = Integer()
+    license = Keyword(
+        fields={
+            'text': field.Text(),
+            'english': field.Text(analyzer='english')
+        }
+    )
 
     class Meta:
         index = 'document-index'
@@ -563,6 +648,7 @@ def create_document_index(document):
         regions=document.region_name_list(),
         num_ratings=prepare_num_ratings(document),
         num_comments=prepare_num_comments(document),
+        license=prepare_license(document),
     )
     try:
         obj.save()
